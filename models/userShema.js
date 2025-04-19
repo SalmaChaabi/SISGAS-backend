@@ -3,14 +3,13 @@ const bcrypt = require("bcrypt");
 const userSchema = new mongoose.Schema(
   {
     firstName: {
-        type: String,
-        required: true,
-      },
+      type: String,
+      required: true,
+    },
     lastName: {
-        type:String,
-        required: true,
-      },
-
+      type: String,
+      required: true,
+    },
     email: {
       type: String,
       required: true,
@@ -27,20 +26,29 @@ const userSchema = new mongoose.Schema(
         "Le mot de passe doit contenir au moins 8 caractères, une lettre majuscule, une lettre minuscule, un chiffre et un caractère spécial.",
       ],
     },
-    role: {
+    user_image: {
       type: String,
-      enum: ["admin", "technicien radio", "agent comptable" ,"fournisseur Ls télècom"],
+      default: "utilisateur.png",
     },
-    user_image: { type: String, require: false, default: "utilisateur.png" },
-    
-    etat:{
-        type:Boolean, 
-    }
+    etat: {
+      type: Boolean,
+      default: true,
+    },
 
+    approbations: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Approbation",
+      },
+    ],
+
+    role: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role", // One 
+    },
   },
   { timestamps: true }
 );
-
 userSchema.post("save", async function (req, res, next) {
     console.log("new user was created & saved successfully");
     next();
@@ -85,6 +93,7 @@ userSchema.post("save", async function (req, res, next) {
 
   
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema); 
 
-module.exports = User;
+module.exports = User;  
+

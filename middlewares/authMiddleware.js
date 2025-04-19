@@ -24,3 +24,4 @@ const requireAuthUser = (req, res, next) => {
   }
 };
 module.exports = { requireAuthUser };
+

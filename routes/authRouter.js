@@ -7,19 +7,13 @@ const upload = require("../middlewares/uploadFile")
 /* GET users listing. */
 router.get('/getAllUsers',authController.getAllUsers );
 router.get('/getUserById/:id',authController.getUserByID );
-router.post('/addUserAdmin',authController.addUserAdmin );
-router.post('/addUserTechnicienRadio',authController.addUserTechnicienRadio );
-router.post('/addUserAgentComptable',authController.addUserAgentComptable );
-router.post('/addUserFournisseurLsTélècom',authController.addUserFournisseurLsTélècom );
+router.get('/getUsersByRole/:roleName',authController.getUsersByRole );
+router.post('/addUser',authController.addUser );
 router.get('/searchUsersByName',authController.searchUsersByName );
-router.put('/updateUser/:id',authController.updateuser);
+router.put('/updateUser/:id',authController.updateUser);
 router.delete('/deleteUser/:id',authController.deleteUser );
 router.post('/login',authController.login); 
-router.post('/logout',authController.logout); 
-
-
-
-
+router.post('/logout',authController.logout);     
 
 
 

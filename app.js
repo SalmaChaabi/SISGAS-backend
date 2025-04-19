@@ -13,6 +13,19 @@ const { connectToMongoDB } = require('./db/db')
 var indexRouter = require('./routes/index');
 var osRouter = require('./routes/osRouter');
 var authRouter = require('./routes/authRouter');
+var factureRouter = require('./routes/factureRouter');
+var approbationRouter = require('./routes/approbationRouter');
+var roleRouter = require('./routes/roleRouter');
+var statutPaiementRouter = require('./routes/statutPaiementRouter');
+
+
+
+
+
+
+
+
+
 
 
 var app = express();
@@ -28,6 +41,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/os',osRouter );
 app.use('/auth',authRouter);
+app.use('/facture',factureRouter);
+app.use('/approbation',approbationRouter);
+app.use('/role',roleRouter);
+app.use('/statutPaiement',statutPaiementRouter);
+
+
+
 
 
 
@@ -43,12 +63,13 @@ app.use(function(err, req, res, next) {
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
   // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+  res.status(err.status || 500);   
+  res.json('error');  
 });
-
+  
 const server = http.createServer(app); //1
 console.log(process.env.URL_MONGO)
 server.listen(process.env.PORT,()=>{connectToMongoDB(),console.log("app is running on port 5001")});//1 avec process.env.PORT
 
-module.exports = app;
+module.exports = app;   
+ 
