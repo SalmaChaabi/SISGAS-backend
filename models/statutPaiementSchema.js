@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const statutPaiementSchema = new mongoose.Schema({
+const statutPaiementShema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -19,5 +19,5 @@ const statutPaiementSchema = new mongoose.Schema({
   ]
 }, { timestamps: true }); // Pour createdAt et updatedAt automatiquement
 
-module.exports = mongoose.model("StatutPaiement", statutPaiementSchema);
+module.exports = mongoose.model("StatutPaiement",statutPaiementShema );
 

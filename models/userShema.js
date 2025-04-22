@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+
 const userSchema = new mongoose.Schema(
   {
     firstName: {
@@ -15,16 +16,21 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
-      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
+      match: [/^\S+@\S+\.\S+$/, "Veuillez entrer une adresse email valide."],
     },
     password: {
       type: String,
       required: true,
       minLength: 8,
-      match: [
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-        "Le mot de passe doit contenir au moins 8 caractères, une lettre majuscule, une lettre minuscule, un chiffre et un caractère spécial.",
-      ],
+      validate: {
+        validator: function (value) {
+          // ✅ Valide uniquement si le mot de passe est modifié (non hashé)
+          if (!this.isModified("password")) return true;
+          return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(value);
+        },
+        message:
+          "Le mot de passe doit contenir au moins 8 caractères, une lettre majuscule, une lettre minuscule, un chiffre et un caractère spécial.",
+      },
     },
     user_image: {
       type: String,
@@ -44,56 +50,49 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Role", // One 
+      ref: "Role",
     },
+
+    reclamations: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Reclamation",
+      },
+    ],
   },
   { timestamps: true }
 );
-userSchema.post("save", async function (req, res, next) {
-    console.log("new user was created & saved successfully");
-    next();
-  });
-  
-  userSchema.pre("save", async function (next) {
-    try {
-      const salt = await bcrypt.genSalt();
-      const User = this;
-      User.password = await bcrypt.hash(User.password, salt);
-      (User.CreatedAt = new Date()), (User.UpdatedAt = new Date()),
-      next();
-    } catch (err) {
-      next(err);
-    }
-  });
 
-  userSchema.statics.login = async function (email, password) {
-    //console.log(email, password);
-    const user = await this.findOne({ email });
-    //console.log(user)
-    if (user) {
-      const auth = await bcrypt.compare(password,user.password);
-      //console.log(auth)
-      if (auth) {
-        // if (user.etat === true) {
-        //   if (user.ban === false) {
-            return user;
-        //   } else {
-        //     throw new Error("ban");
-        //   }
-        // } else {
-        //   throw new Error("compte desactive ");
-        // }
-      } else {
-        throw new Error("password invalid"); 
-      }
-    } else {
-      throw new Error("email not found");
+// 🔐 Hasher le mot de passe avant enregistrement
+userSchema.pre("save", async function (next) {
+  try {
+    if (this.isModified("password")) {
+      const salt = await bcrypt.genSalt();
+      this.password = await bcrypt.hash(this.password, salt);
     }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 🗣 Message après enregistrement
+userSchema.post("save", function () {
+  console.log("✅ Nouvel utilisateur enregistré avec succès.");
+});
+
+// 🔐 Méthode de connexion statique
+userSchema.statics.login = async function (email, password) {
+  const user = await this.findOne({ email });
+  if (user) {
+    const auth = await bcrypt.compare(password, user.password);
+    if (auth) return user;
+    throw new Error("Mot de passe incorrect.");
+  }
+  throw new Error("Email introuvable.");
 };
 
-  
+const User = mongoose.model("User", userSchema);
+module.exports = User;
 
-const User = mongoose.model("User", userSchema); 
-
-module.exports = User;  
 

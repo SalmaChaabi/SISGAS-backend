@@ -17,12 +17,9 @@ var factureRouter = require('./routes/factureRouter');
 var approbationRouter = require('./routes/approbationRouter');
 var roleRouter = require('./routes/roleRouter');
 var statutPaiementRouter = require('./routes/statutPaiementRouter');
-
-
-
-
-
-
+var statutReclamationRouter = require('./routes/statutReclamationRouter');
+var reclamationRouter = require('./routes/reclamationRouter');
+var actionCorrectiveRouter = require('./routes/actionCorrectiveRouter');
 
 
 
@@ -45,6 +42,11 @@ app.use('/facture',factureRouter);
 app.use('/approbation',approbationRouter);
 app.use('/role',roleRouter);
 app.use('/statutPaiement',statutPaiementRouter);
+app.use('/statutReclamation',statutReclamationRouter);
+app.use('/reclamation',reclamationRouter);
+app.use('/actionCorrective',actionCorrectiveRouter);
+
+
 
 
 

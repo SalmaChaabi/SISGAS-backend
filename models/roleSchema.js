@@ -9,9 +9,20 @@ const roleSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    default: ""
+    default: "",
   },
-  users: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }] //many 
+  users: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ], //many 
+  reclamations: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Reclamation",
+    },
+  ], // many (Many-to-One)
 }, {
   timestamps: true,
 });
