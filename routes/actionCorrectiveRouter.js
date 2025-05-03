@@ -4,7 +4,7 @@ const actionCorrectiveController = require('../controller/actionCorrectiveContro
 
 router.post("/createActionCorrective", actionCorrectiveController.createActionCorrective);
 router.get("/getAllActionsCorrectives", actionCorrectiveController.getAllActionsCorrectives);
-router.get("/getActionCorrectiveById/:id", actionCorrectiveController.getActionCorrectiveById);
+router.get("/getActionsCorrectivesByReclamation/:id", actionCorrectiveController.getActionsCorrectivesByReclamation); // ✅
 router.get("/getActionCorrectiveWithStatut/:id", actionCorrectiveController.getActionCorrectiveWithStatut);
 router.put("/updateActionCorrective/:id", actionCorrectiveController.updateActionCorrective);
 router.delete("/deleteActionCorrective/:id", actionCorrectiveController.deleteActionCorrective);

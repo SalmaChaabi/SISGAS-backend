@@ -80,6 +80,36 @@ exports.getAllActionsCorrectives = async (req, res) => {
         res.status(500).json({ message: "Erreur serveur", error });
       }
     };
+    exports.getActionsCorrectivesByReclamation = async (req, res) => {
+        try {
+          const { id } = req.params;
+      
+          if (!mongoose.Types.ObjectId.isValid(id)) {
+            console.warn("⚠️ ID de réclamation invalide reçu :", id);
+            return res.status(400).json({ message: "ID de réclamation invalide" });
+          }
+      
+          const actions = await actionCorrectiveModel.find({ reclamation: id })
+            .populate("reclamation")
+            .populate("statutReclamation");
+      
+          if (actions.length === 0) {
+            return res.status(200).json({
+              message: "Aucune action corrective trouvée pour cette réclamation.",
+              data: []
+            });
+          }
+      
+          res.status(200).json(actions);
+      
+        } catch (error) {
+          console.error("Erreur lors de la récupération des actions :", error.message);
+          res.status(500).json({ message: "Erreur serveur", error: error.message });
+        }
+      };
+      
+      
+      
   
   exports.updateActionCorrective = async (req, res) => {
       try {
