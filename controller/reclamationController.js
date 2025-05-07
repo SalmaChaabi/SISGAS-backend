@@ -3,111 +3,139 @@ const statutReclamationModel= require("../models/statutReclamationSchema");
 const actionCorrectiveModel = require("../models/actionCorrectiveSchema");
 const userModel = require("../models/userShema");
 const roleModel = require("../models/roleSchema");
+const Notification = require("../models/notificationShema");
+
+
+
+
+const { createNotification } = require("./notificationController"); // 🔁 adapte le chemin si besoin
+
 
 exports.createReclamation = async (req, res) => {
-    try {
-      const {
-        titre,
-        description,
-        statut,
-        utilisateur,
-        role,
-        actionsCorrectives,
-        commentaireAdmin,
-        fournisseurIntervenu,
-        dateResolution,
-      } = req.body;
-  
-      // Vérification des références
-      const statutExiste = await statutReclamationModel.findById(statut);
-      if (!statutExiste)
-        return res.status(400).json({ message: "Statut non trouvé" });
-  
-      const utilisateurExiste = await userModel.findById(utilisateur);
-      if (!utilisateurExiste)
-        return res.status(400).json({ message: "Utilisateur non trouvé" });
-  
-      let roleExiste;
-      if (role) {
-        roleExiste = await roleModel.findById(role);
-        if (!roleExiste)
-          return res.status(400).json({ message: "Rôle non trouvé" });
-      }
-  
-      if (actionsCorrectives && actionsCorrectives.length > 0) {
-        for (let id of actionsCorrectives) {
-          const actionExiste = await actionCorrectiveModel.findById(id);
-          if (!actionExiste)
-            return res
-              .status(400)
-              .json({ message: `Action corrective non trouvée : ${id}` });
-        }
-      }
-  
-      // Création de la réclamation
-      const nouvelleReclamation = new reclamationModel({
-        titre,
-        description,
-        statut,
-        utilisateur,
-        role,
-        actionsCorrectives,
-        commentaireAdmin,
-        fournisseurIntervenu,
-        dateResolution,
-      });
-  
-      const savedReclamation = await nouvelleReclamation.save();
-  
-      //  Mise à jour des autres collections
-  
-      // Push fi user
-      utilisateurExiste.reclamations = utilisateurExiste.reclamations || [];
-      utilisateurExiste.reclamations.push(savedReclamation._id);
-      await utilisateurExiste.save();
-  
-      // Push fi statut
-      statutExiste.reclamations = statutExiste.reclamations || [];
-      statutExiste.reclamations.push(savedReclamation._id);
-      await statutExiste.save();
-  
-      // Push fi rôle (si fourni)
-      if (roleExiste) {
-        roleExiste.reclamations = roleExiste.reclamations || [];
-        roleExiste.reclamations.push(savedReclamation._id);
-        await roleExiste.save();
-      }
-  
-      // Push fi actions correctives
-      if (actionsCorrectives && actionsCorrectives.length > 0) {
-        for (let id of actionsCorrectives) {
-          const action = await actionCorrectiveModel.findById(id);
-          action.reclamations = action.reclamations || [];
-          action.reclamations.push(savedReclamation._id);
-          await action.save();
-        }
-      }
-  
-      res.status(201).json({
-        message: "Réclamation créée avec succès.",
-        reclamation: savedReclamation,
-      });
-  
-    } catch (error) {
-      console.error("Erreur lors de la création de la réclamation :", error);
-      res.status(500).json({ message: "Erreur serveur", error });
+  try {
+    const {
+      titre,
+      description,
+      statut,
+      utilisateur,
+      role,
+      actionsCorrectives,
+      commentaireAdmin,
+      fournisseurIntervenu,
+      dateResolution,
+    } = req.body;
+
+    // Vérification des références
+    const statutExiste = await statutReclamationModel.findById(statut);
+    if (!statutExiste)
+      return res.status(400).json({ success: false, message: "Statut non trouvé" });
+
+    const utilisateurExiste = await userModel.findById(utilisateur);
+    if (!utilisateurExiste)
+      return res.status(400).json({ success: false, message: "Utilisateur non trouvé" });
+
+    let roleExiste;
+    if (role) {
+      roleExiste = await roleModel.findById(role);
+      if (!roleExiste)
+        return res.status(400).json({ success: false, message: "Rôle non trouvé" });
     }
-  };
-  
-  // ✅ Récupérer toutes les réclamations
+
+    if (actionsCorrectives && actionsCorrectives.length > 0) {
+      for (let id of actionsCorrectives) {
+        const actionExiste = await actionCorrectiveModel.findById(id);
+        if (!actionExiste)
+          return res.status(400).json({
+            success: false,
+            message: `Action corrective non trouvée : ${id}`,
+          });
+      }
+    }
+
+    // Création de la réclamation sans notification pour le moment
+    const nouvelleReclamation = new reclamationModel({
+      titre,
+      description,
+      statut,
+      utilisateur: utilisateurExiste._id,
+      role,
+      actionsCorrectives,
+      commentaireAdmin,
+      fournisseurIntervenu,
+      dateResolution,
+    });
+
+    const savedReclamation = await nouvelleReclamation.save();
+
+    // Créer une notification liée à cette réclamation
+    const nouvelleNotification = await createNotification({
+      message: `Nouvelle réclamation créée : ${titre}`,
+      utilisateur,
+      reclamation: savedReclamation._id,
+    });
+
+    // Ajouter l'ID de la notification dans le champ notifications du User
+    utilisateurExiste.notifications = utilisateurExiste.notifications || [];
+    utilisateurExiste.notifications.push(nouvelleNotification._id);
+
+    // ✅ Ajouter aussi la réclamation dans le champ user.reclamations
+    utilisateurExiste.reclamations = utilisateurExiste.reclamations || [];
+    utilisateurExiste.reclamations.push(savedReclamation._id);
+
+    await utilisateurExiste.save();
+
+    // ✅ Ajouter l'ID de la notification dans la réclamation
+    savedReclamation.notification = nouvelleNotification._id;
+    await savedReclamation.save();
+
+    // Mise à jour des autres collections
+    statutExiste.reclamations = statutExiste.reclamations || [];
+    statutExiste.reclamations.push(savedReclamation._id);
+    await statutExiste.save();
+
+    if (roleExiste) {
+      roleExiste.reclamations = roleExiste.reclamations || [];
+      roleExiste.reclamations.push(savedReclamation._id);
+      await roleExiste.save();
+    }
+
+    if (actionsCorrectives && actionsCorrectives.length > 0) {
+      for (let id of actionsCorrectives) {
+        const action = await actionCorrectiveModel.findById(id);
+        action.reclamations = action.reclamations || [];
+        action.reclamations.push(savedReclamation._id);
+        await action.save();
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Réclamation créée avec succès.",
+      data: savedReclamation,
+    });
+
+  } catch (error) {
+    console.error("Erreur lors de la création de la réclamation :", error);
+    res.status(500).json({
+      success: false,
+      message: "Erreur serveur",
+      error: error.message,
+    });
+  }
+};
+
+
+
+  //  Récupérer toutes les réclamations
   exports.getAllReclamations = async (req, res) => {
     try {
       const reclamations = await reclamationModel
         .find()
-        .populate("utilisateur")
-        .populate("statut")
+        .populate("utilisateur","firstName lastName")
+        .populate("statut","nom")
         .populate("actionsCorrectives")
-        .populate("role");
+        .populate("role","name")
+        .populate("notification")
   
       res.status(200).json(reclamations);
     } catch (error) {
@@ -123,7 +151,8 @@ exports.createReclamation = async (req, res) => {
         .populate("utilisateur")
         .populate("statut")
         .populate("actionsCorrectives")
-        .populate("role");
+        .populate("role")
+        .populate("notification");
   
       if (!reclamation)
         return res.status(404).json({ message: "Réclamation non trouvée." });
@@ -219,7 +248,7 @@ exports.createReclamation = async (req, res) => {
     }
   };
   
-  // ✅ Supprimer une réclamation
+  //  Supprimer une réclamation
   exports.deleteReclamation = async (req, res) => {
     try {
       const reclamation = await reclamationModel.findById(req.params.id);
@@ -248,15 +277,19 @@ exports.createReclamation = async (req, res) => {
         });
       }
   
+      // Supprimer la référence à la réclamation dans les actions correctives
       if (actionsCorrectives && actionsCorrectives.length > 0) {
         for (let actionId of actionsCorrectives) {
           await actionCorrectiveModel.findByIdAndUpdate(actionId, {
-            $pull: { reclamations: reclamation._id },
+            $unset: { reclamation: "" },
           });
         }
       }
   
-      //  Supprimer la réclamation elle-même
+      //  Supprimer les notifications liées à cette réclamation
+      await Notification.deleteMany({ reclamation: reclamation._id });
+  
+      // Supprimer la réclamation elle-même
       await reclamationModel.findByIdAndDelete(req.params.id);
   
       res.status(200).json({ message: "Réclamation supprimée avec succès." });
@@ -265,6 +298,7 @@ exports.createReclamation = async (req, res) => {
       res.status(500).json({ message: "Erreur serveur", error });
     }
   };
+  
   
 
 

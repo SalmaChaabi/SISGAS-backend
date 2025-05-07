@@ -17,6 +17,14 @@ const actionCorrectiveSchema = new mongoose.Schema({
     ref: "StatutReclamation",
     required: true
   }, // One-to-Many : un statut peut être associé à plusieurs actions correctives
+
+  notification: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Notification",
+    default: null
+  }
+
+ 
 });
 
 module.exports = mongoose.model("ActionCorrective", actionCorrectiveSchema);

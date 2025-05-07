@@ -20,10 +20,7 @@ var statutPaiementRouter = require('./routes/statutPaiementRouter');
 var statutReclamationRouter = require('./routes/statutReclamationRouter');
 var reclamationRouter = require('./routes/reclamationRouter');
 var actionCorrectiveRouter = require('./routes/actionCorrectiveRouter');
-
-
-
-
+var notificationRouter= require('./routes/notificationRouter');
 
 var app = express();
 
@@ -45,10 +42,7 @@ app.use('/statutPaiement',statutPaiementRouter);
 app.use('/statutReclamation',statutReclamationRouter);
 app.use('/reclamation',reclamationRouter);
 app.use('/actionCorrective',actionCorrectiveRouter);
-
-
-
-
+app.use('/notification',notificationRouter);
 
 
 

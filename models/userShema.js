@@ -59,6 +59,14 @@ const userSchema = new mongoose.Schema(
         ref: "Reclamation",
       },
     ],
+
+    notifications: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Notification",
+      }
+    ], //many
+    
   },
   { timestamps: true }
 );

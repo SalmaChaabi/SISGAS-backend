@@ -48,6 +48,11 @@ const ReclamationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Role",
   }, // one (Many-to-One)
+
+  notification: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Notification",
+  }
 });
 
 

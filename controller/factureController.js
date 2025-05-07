@@ -118,15 +118,16 @@ module.exports.createFacture = async (req, res) => {
     try {
       const { id } = req.params;
   
-      const facture = await factureModel.findById(id);
+      const facture = await factureModel.findById(id).populate('statutpaiement');
       if (!facture) {
         return res.status(404).json({ message: 'Facture non trouvée' });
       }
-  
-      facture.statut_paiement = 'Vérifiée';
+    const statusVerifie = await statutPaiementModel.findOne({name:'Vérifiée'})
+      facture.statutpaiement =statusVerifie;
       await facture.save();
   
       res.status(200).json({ message: 'Facture vérifiée avec succès', facture });
+
   
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -139,7 +140,7 @@ module.exports.createFacture = async (req, res) => {
       if (!facture) return res.status(404).json({ message: 'Facture introuvable' });
       const status = await statutPaiementModel.findOne({name:'Validée'})
   
-      facture.statutpaiement =status._id;
+      facture.statutpaiement =status;
       await facture.save();
       res.json(facture);
     } catch (error) {

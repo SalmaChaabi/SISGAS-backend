@@ -16,7 +16,8 @@ module.exports.getAllUsers = async (req, res) => {
       // Populate sur 'role' pour avoir le nom du rôle directement
       const usersListe = await userModel.find()
         .populate('role') 
-        .populate('approbations'); // si tu veux les approbations aussi
+        .populate('approbations') // si tu veux les approbations aussi
+        .populate('notifications');
   
       // On modifie le tableau pour retourner role.name au lieu de l'objet complet
       const usersWithRoleNames = usersListe.map(user => {
@@ -41,7 +42,8 @@ module.exports.getUserByID = async (req, res) => {
       // On récupère le user et on peuple (populate) directement le champ "role" avec tout l'objet Role
       const user = await userModel.findById(id)
         .populate('approbations') 
-        .populate('role'); // ceci remplace le besoin de roleModel.findById()
+        .populate('role') // ceci remplace le besoin de roleModel.findById()
+        .populate('notifications')
   
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -50,7 +52,7 @@ module.exports.getUserByID = async (req, res) => {
       // Si tu veux retourner juste le nom du rôle, tu peux faire ça :
       const userWithRoleName = {
         ...user.toObject(), // convertir en objet normal
-        role: user.role.name // remplacer l'objet role par juste son nom
+        role: user.role.name // remplacer l'objet role par juste son nom 
       };
   
       res.status(200).json(userWithRoleName);
