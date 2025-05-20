@@ -66,6 +66,11 @@ const userSchema = new mongoose.Schema(
         ref: "Notification",
       }
     ], //many
+
+    actionsCorrectives: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ActionCorrective"
+    }] //many 
     
   },
   { timestamps: true }

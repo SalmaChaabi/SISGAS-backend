@@ -16,7 +16,7 @@ const ReclamationSchema = new mongoose.Schema({
   },
   dateResolution: Date,
 
-  commentaireAdmin: {
+  Commentaireutilisateur: {
     type: String,
   },
   fournisseurIntervenu: {
@@ -53,7 +53,7 @@ const ReclamationSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: "Notification",
   }
-});
+} ,{ timestamps: true });
 
 
 

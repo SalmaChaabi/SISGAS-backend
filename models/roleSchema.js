@@ -23,6 +23,11 @@ const roleSchema = new mongoose.Schema({
       ref: "Reclamation",
     },
   ], // many (Many-to-One)
+
+    actionsCorrectives: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "ActionCorrective"
+      }] // many 
 }, {
   timestamps: true,
 });

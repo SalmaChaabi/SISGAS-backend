@@ -21,6 +21,8 @@ var statutReclamationRouter = require('./routes/statutReclamationRouter');
 var reclamationRouter = require('./routes/reclamationRouter');
 var actionCorrectiveRouter = require('./routes/actionCorrectiveRouter');
 var notificationRouter= require('./routes/notificationRouter');
+var dashboardRoutes= require('./routes/dashboardRoutes');
+
 
 var app = express();
 
@@ -43,6 +45,8 @@ app.use('/statutReclamation',statutReclamationRouter);
 app.use('/reclamation',reclamationRouter);
 app.use('/actionCorrective',actionCorrectiveRouter);
 app.use('/notification',notificationRouter);
+app.use('/dashboard',dashboardRoutes);
+
 
 
 

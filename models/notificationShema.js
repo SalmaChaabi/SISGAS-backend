@@ -16,7 +16,7 @@ const notificationSchema = new mongoose.Schema({
   },
 
   utilisateur: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId, 
     ref: "User",
     required: true,
   }, //(one): Many-to-One ==>(Une notification est liée à un seul utilisateur, mais un utilisateur peut avoir plusieurs notifications.)

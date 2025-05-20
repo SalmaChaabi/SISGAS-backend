@@ -22,9 +22,19 @@ const actionCorrectiveSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Notification",
     default: null
-  }
+  },
 
- 
-});
+  utilisateur: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  }, // one   // // Utilisateur lié à la réclamation
+
+   role: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Role",
+      },//one   //// Rôle lié à la réclamation
+
+}, { timestamps: true });
 
 module.exports = mongoose.model("ActionCorrective", actionCorrectiveSchema);

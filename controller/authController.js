@@ -12,27 +12,31 @@ const createToken = (id) => {
 
 
 module.exports.getAllUsers = async (req, res) => {
-    try {
-      // Populate sur 'role' pour avoir le nom du rôle directement
-      const usersListe = await userModel.find()
-        .populate('role') 
-        .populate('approbations') // si tu veux les approbations aussi
-        .populate('notifications');
-  
-      // On modifie le tableau pour retourner role.name au lieu de l'objet complet
-      const usersWithRoleNames = usersListe.map(user => {
-        return {
-          ...user.toObject(),
-          role: user.role ? user.role.name : null // remplacer l'objet role par son nom
-        };
-      });
-  
-      res.status(200).json({ usersListe: usersWithRoleNames });
-  
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  };
+  try {
+    const usersListe = await userModel.find()
+      .populate('role')
+      .populate('approbations')
+      .populate('notifications');
+
+    const usersWithDetails = usersListe.map(user => {
+      const userObj = user.toObject();
+
+      return {
+        ...userObj,
+        role: user.role ? user.role.name : null,
+        user_image: user.user_image 
+          ? `http://localhost:5001/images/${user.user_image}` 
+          : null
+      };
+    });
+
+    res.status(200).json({ usersListe: usersWithDetails });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
   
 
 module.exports.getUserByID = async (req, res) => {
@@ -175,7 +179,7 @@ module.exports.getUserByID = async (req, res) => {
   
   
 
-    module.exports.searchUsersByName = async (req, res) => { //?minAge=18&maxAge=80
+    module.exports.searchUsersByName= async (req, res) => { //?minAge=18&maxAge=80
         try {
       
             //const name = req.query.name
@@ -221,6 +225,55 @@ module.exports.getUserByID = async (req, res) => {
           res.status(500).json({ message: error.message });
         }
       };
+
+      module.exports.addUserWithImage = async (req, res) => {
+  try {
+    const { firstName, lastName, email, password, role } = req.body;
+
+    // Vérifier si un fichier est bien envoyé
+    if (!req.file) {
+      return res.status(400).json({ message: "Aucune image n'a été envoyée." });
+    }
+
+    const { filename } = req.file;
+    console.log("Image enregistrée :", filename);
+
+    // Créer l'utilisateur avec image
+    const user = new userModel({
+      firstName,
+      lastName,
+      email,
+      password,
+      role,
+      user_image: filename, // le nom du champ doit correspondre à celui du modèle
+    });
+
+    const addedUser = await user.save();
+
+    // Peuplage du rôle si besoin
+    const populatedUser = await userModel.findById(addedUser._id).populate('role');
+
+    const userData = {
+      ...populatedUser.toObject(),
+      role: populatedUser.role?.name || null,
+    };
+
+    res.status(201).json({
+      message: "Utilisateur ajouté avec image",
+      user: userData,
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+
+
+
+
 
 module.exports.login= async (req,res) => {
     try {

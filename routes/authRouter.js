@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 const authController = require('../controller/authController');
-const upload = require("../middlewares/uploadFile")
+const uploadfile = require('../middlewares/uploadFile');
 
 
 /* GET users listing. */
@@ -12,6 +12,7 @@ router.post('/addUser',authController.addUser );
 router.get('/searchUsersByName',authController.searchUsersByName );
 router.put('/updateUser/:id',authController.updateUser);
 router.delete('/deleteUser/:id',authController.deleteUser );
+router.post('/addUserWithImage',uploadfile.single("image_user"), authController.addUserWithImage);
 router.post('/login',authController.login); 
 router.post('/logout',authController.logout);     
 

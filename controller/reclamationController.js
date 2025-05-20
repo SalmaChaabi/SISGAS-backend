@@ -4,10 +4,6 @@ const actionCorrectiveModel = require("../models/actionCorrectiveSchema");
 const userModel = require("../models/userShema");
 const roleModel = require("../models/roleSchema");
 const Notification = require("../models/notificationShema");
-
-
-
-
 const { createNotification } = require("./notificationController"); // 🔁 adapte le chemin si besoin
 
 
@@ -20,7 +16,7 @@ exports.createReclamation = async (req, res) => {
       utilisateur,
       role,
       actionsCorrectives,
-      commentaireAdmin,
+      Commentaireutilisateur,
       fournisseurIntervenu,
       dateResolution,
     } = req.body;
@@ -60,7 +56,7 @@ exports.createReclamation = async (req, res) => {
       utilisateur: utilisateurExiste._id,
       role,
       actionsCorrectives,
-      commentaireAdmin,
+      Commentaireutilisateur,
       fournisseurIntervenu,
       dateResolution,
     });
@@ -74,37 +70,53 @@ exports.createReclamation = async (req, res) => {
       reclamation: savedReclamation._id,
     });
 
-    // Ajouter l'ID de la notification dans le champ notifications du User
+    // Ajouter l'ID de la notification dans l'utilisateur principal
     utilisateurExiste.notifications = utilisateurExiste.notifications || [];
     utilisateurExiste.notifications.push(nouvelleNotification._id);
 
-    // ✅ Ajouter aussi la réclamation dans le champ user.reclamations
+    // Ajouter aussi la réclamation dans le champ user.reclamations
     utilisateurExiste.reclamations = utilisateurExiste.reclamations || [];
     utilisateurExiste.reclamations.push(savedReclamation._id);
 
     await utilisateurExiste.save();
 
-    // ✅ Ajouter l'ID de la notification dans la réclamation
+    // Ajouter l'ID de la notification dans la réclamation
     savedReclamation.notification = nouvelleNotification._id;
     await savedReclamation.save();
 
-    // Mise à jour des autres collections
+    // Mise à jour du statut
     statutExiste.reclamations = statutExiste.reclamations || [];
     statutExiste.reclamations.push(savedReclamation._id);
     await statutExiste.save();
 
+    // Mise à jour du rôle
     if (roleExiste) {
       roleExiste.reclamations = roleExiste.reclamations || [];
       roleExiste.reclamations.push(savedReclamation._id);
       await roleExiste.save();
     }
 
+    // 🔁 Mise à jour des actions correctives et notifications pour chaque utilisateur associé
     if (actionsCorrectives && actionsCorrectives.length > 0) {
       for (let id of actionsCorrectives) {
-        const action = await actionCorrectiveModel.findById(id);
+        const action = await actionCorrectiveModel.findById(id).populate("utilisateur");
+
+        // Lier la réclamation à l'action corrective
         action.reclamations = action.reclamations || [];
-        action.reclamations.push(savedReclamation._id);
-        await action.save();
+        if (!action.reclamations.includes(savedReclamation._id)) {
+          action.reclamations.push(savedReclamation._id);
+          await action.save();
+        }
+
+        // Ajouter la même notification dans le champ utilisateur.notifications
+        const utilisateurAction = action.utilisateur;
+        if (utilisateurAction) {
+          utilisateurAction.notifications = utilisateurAction.notifications || [];
+          if (!utilisateurAction.notifications.includes(nouvelleNotification._id)) {
+            utilisateurAction.notifications.push(nouvelleNotification._id);
+            await utilisateurAction.save();
+          }
+        }
       }
     }
 
@@ -123,8 +135,6 @@ exports.createReclamation = async (req, res) => {
     });
   }
 };
-
-
 
   //  Récupérer toutes les réclamations
   exports.getAllReclamations = async (req, res) => {
@@ -163,144 +173,160 @@ exports.createReclamation = async (req, res) => {
     }
   };
   
-  // ✅ Mettre à jour une réclamation
-  exports.updateReclamation = async (req, res) => {
-    try {
-      // 1. Récupérer l'ID de la réclamation à mettre à jour
-      const reclamation = await reclamationModel.findById(req.params.id);
-      if (!reclamation) {
-        return res.status(404).json({ message: "Réclamation non trouvée." });
+  //  Mettre à jour une réclamation
+
+exports.updateReclamation = async (req, res) => {
+  try {
+    // 1. Récupérer l'ancienne réclamation
+    const reclamation = await reclamationModel.findById(req.params.id).populate('statut utilisateur');
+    if (!reclamation) {
+      return res.status(404).json({ message: "Réclamation non trouvée." });
+    }
+
+    // 2. Extraire les données du body
+    const {
+      titre,
+      description,
+      statut,
+      utilisateur,
+      role,
+      actionsCorrectives,
+      Commentaireutilisateur,
+      fournisseurIntervenu,
+      dateResolution,
+    } = req.body;
+
+    // 3. Vérification des références
+    let statutExiste = null;
+    if (statut) {
+      statutExiste = await statutReclamationModel.findById(statut);
+      if (!statutExiste) {
+        return res.status(400).json({ message: "Statut non trouvé" });
       }
-  
-      // 2. Récupérer les données envoyées dans le body
-      const {
+    }
+
+    if (utilisateur) {
+      const utilisateurExiste = await userModel.findById(utilisateur);
+      if (!utilisateurExiste) {
+        return res.status(400).json({ message: "Utilisateur non trouvé" });
+      }
+    }
+
+    if (role) {
+      const roleExiste = await roleModel.findById(role);
+      if (!roleExiste) {
+        return res.status(400).json({ message: "Rôle non trouvé" });
+      }
+    }
+
+    if (actionsCorrectives && actionsCorrectives.length > 0) {
+      for (let id of actionsCorrectives) {
+        const actionExiste = await actionCorrectiveModel.findById(id);
+        if (!actionExiste) {
+          return res.status(400).json({ message: `Action corrective non trouvée : ${id}` });
+        }
+      }
+    }
+
+    // 4. Vérifier si le statut a changé
+    const statutChange = statut && statut !== String(reclamation.statut?._id);
+
+    // 5. Mise à jour de la réclamation
+    const updatedReclamation = await reclamationModel.findByIdAndUpdate(
+      req.params.id,
+      {
         titre,
         description,
         statut,
         utilisateur,
         role,
         actionsCorrectives,
-        commentaireAdmin,
+        Commentaireutilisateur,
         fournisseurIntervenu,
         dateResolution,
-      } = req.body;
-  
-      // 3. Vérification des données de référence :
-      // Vérification du statut
-      if (statut) {
-        const statutExiste = await statutReclamationModel.findById(statut);
-        if (!statutExiste) {
-          return res.status(400).json({ message: "Statut non trouvé" });
-        }
-      }
-  
-      // Vérification de l'utilisateur
-      if (utilisateur) {
-        const utilisateurExiste = await userModel.findById(utilisateur);
-        if (!utilisateurExiste) {
-          return res.status(400).json({ message: "Utilisateur non trouvé" });
-        }
-      }
-  
-      // Vérification du rôle si fourni
-      if (role) {
-        const roleExiste = await roleModel.findById(role);
-        if (!roleExiste) {
-          return res.status(400).json({ message: "Rôle non trouvé" });
-        }
-      }
-  
-      // Vérification des actions correctives si fournies
-      if (actionsCorrectives && actionsCorrectives.length > 0) {
-        for (let id of actionsCorrectives) {
-          const actionExiste = await actionCorrectiveModel.findById(id);
-          if (!actionExiste) {
-            return res.status(400).json({ message: `Action corrective non trouvée : ${id}` });
-          }
-        }
-      }
-  
-      // 4. Mise à jour de la réclamation avec les nouvelles données
-      const updatedReclamation = await reclamationModel.findByIdAndUpdate(
-        req.params.id,
-        {
-          titre,
-          description,
-          statut,
-          utilisateur,
-          role,
-          actionsCorrectives,
-          commentaireAdmin,
-          fournisseurIntervenu,
-          dateResolution,
-        },
-        { new: true, runValidators: true }
-      );
-  
-      // 5. Retourner la réponse avec la réclamation mise à jour
-      res.status(200).json({
-        message: "Réclamation mise à jour avec succès.",
-        reclamation: updatedReclamation,
+      },
+      { new: true, runValidators: true }
+    );
+
+    // 6. Créer une notification si le statut a changé
+    if (statutChange && statutExiste) {
+      const notification = new Notification({
+        message: `Le statut de votre réclamation "${reclamation.titre}" a été mis à jour : ${statutExiste.nom}`,
+        utilisateur: reclamation.utilisateur._id,
+        reclamation: updatedReclamation._id,
+        date: new Date(),
+        lu: false,
       });
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour de la réclamation :", error);
-      res.status(500).json({ message: "Erreur serveur", error });
+
+      await notification.save();
     }
-  };
+
+    // 7. Répondre avec succès
+    res.status(200).json({
+      message: "Réclamation mise à jour avec succès.",
+      reclamation: updatedReclamation,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de la réclamation :", error);
+    res.status(500).json({ message: "Erreur serveur", error });
+  }
+};
+
   
   //  Supprimer une réclamation
   exports.deleteReclamation = async (req, res) => {
     try {
-      const reclamation = await reclamationModel.findById(req.params.id);
+      const reclamationId = req.params.id;
+  
+      // 1. Vérifier si la réclamation existe
+      const reclamation = await reclamationModel.findById(reclamationId);
       if (!reclamation) {
         return res.status(404).json({ message: "Réclamation non trouvée." });
       }
   
       const { utilisateur, statut, role, actionsCorrectives } = reclamation;
   
-      // Supprimer l'ID de la réclamation des autres collections
+      // 2. Supprimer l'ID de la réclamation des autres collections
+  
+      // User
       if (utilisateur) {
         await userModel.findByIdAndUpdate(utilisateur, {
-          $pull: { reclamations: reclamation._id },
+          $pull: { reclamations: reclamationId },
         });
       }
   
+      // Statut
       if (statut) {
         await statutReclamationModel.findByIdAndUpdate(statut, {
-          $pull: { reclamations: reclamation._id },
+          $pull: { reclamations: reclamationId },
         });
       }
   
+      // Rôle
       if (role) {
         await roleModel.findByIdAndUpdate(role, {
-          $pull: { reclamations: reclamation._id },
+          $pull: { reclamations: reclamationId },
         });
       }
   
-      // Supprimer la référence à la réclamation dans les actions correctives
+      // 3. Supprimer la référence à la réclamation dans les actions correctives
       if (actionsCorrectives && actionsCorrectives.length > 0) {
-        for (let actionId of actionsCorrectives) {
-          await actionCorrectiveModel.findByIdAndUpdate(actionId, {
-            $unset: { reclamation: "" },
-          });
-        }
+        await actionCorrectiveModel.updateMany(
+          { _id: { $in: actionsCorrectives } },
+          { $unset: { reclamation: "" } } // ou $pull si tableau
+        );
       }
   
-      //  Supprimer les notifications liées à cette réclamation
-      await Notification.deleteMany({ reclamation: reclamation._id });
+      // 4. Supprimer les notifications liées à cette réclamation
+      await Notification.deleteMany({ reclamation: reclamationId });
   
-      // Supprimer la réclamation elle-même
-      await reclamationModel.findByIdAndDelete(req.params.id);
+      // 5. Supprimer la réclamation elle-même
+      await reclamationModel.findByIdAndDelete(reclamationId);
   
-      res.status(200).json({ message: "Réclamation supprimée avec succès." });
+      res.status(200).json({ message: "Réclamation et ses dépendances supprimées avec succès." });
+  
     } catch (error) {
-      console.error("Erreur suppression :", error);
+      console.error("Erreur lors de la suppression de la réclamation :", error);
       res.status(500).json({ message: "Erreur serveur", error });
     }
   };
-  
-  
-
-
-
-
